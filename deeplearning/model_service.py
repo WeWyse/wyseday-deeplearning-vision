@@ -1,3 +1,7 @@
+"""
+Model Service module with the configuration of the NN model
+"""
+
 from pprint import pprint
 
 import torch
@@ -14,8 +18,15 @@ device = (
 )
 print(f"Using {device} device")
 
-
 class ModelManager:
+    """
+    ModelManager class to manage the training and testing of the model
+
+    Args:
+        training_data (DataLoader): DataLoader for training data
+        test_data (DataLoader): DataLoader for test data
+        nn_config (dict): configuration for the neural network
+    """
 
     def __init__(
         self, training_data: DataLoader, test_data: DataLoader, nn_config: dict
@@ -29,6 +40,9 @@ class ModelManager:
         self.optimizer = torch.optim.SGD(self.my_model.parameters(), lr=0.01)
 
     def train(self):
+        """
+        Method to train the model
+        """
         size = len(self.training_data.dataset)
         self.my_model.train()
 
@@ -53,6 +67,9 @@ class ModelManager:
                 print(f"loss: {loss:>7f}  [{current:>5d}/{size:>5d}]")
 
     def test(self):
+        """
+        Method to test the model
+        """
         size = len(self.test_data.dataset)
         num_batches = len(self.test_data)
         self.my_model.eval()
@@ -70,14 +87,26 @@ class ModelManager:
         )
 
     def train_model(self, epochs=5):
+        """
+        Method to train the model for a given number of epochs
+
+        Args:
+            epochs (int, optional): Number of epochs. Defaults to 5.
+        """
         for t in range(epochs):
             print(f"Epoch {t+1}\n-------------------------------")
             self.train()
             self.test()
         print("Done!")
 
-
 class MyModel(nn.Module):
+    """
+    MyModel class to create a custom neural network architecture
+
+    Args:
+        nn_config (dict): configuration for the neural network
+    """
+
     def __init__(self, nn_config: dict):
         self.nn_config: dict = nn_config
         pprint(self.nn_config)
@@ -90,6 +119,15 @@ class MyModel(nn.Module):
         self.print_bool = True
 
     def get_layer(self, layer_config: dict):
+        """
+        Method to create a layer based on the layer configuration
+
+        Args:
+            layer_config (dict): configuration for the layer
+
+        Returns:
+            nn.Module: layer
+        """
         layer_type = layer_config["type"]
 
         if layer_type == "linear":
@@ -120,6 +158,15 @@ class MyModel(nn.Module):
             return nn.LogSoftmax(dim=layer_config.get("dim", 1))
 
     def forward(self, x):
+        """
+        Method to forward the input through the layers of the network
+
+        Args:
+            x (torch.Tensor): input
+
+        Returns:
+            torch.Tensor: output
+        """
         for idx, layer in enumerate(self.layers):
             x = layer(x)
             if self.print_bool:

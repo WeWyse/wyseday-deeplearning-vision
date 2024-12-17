@@ -6,7 +6,7 @@ import torch
 import torchvision
 from torch.utils.tensorboard import SummaryWriter
 
-from deeplearning.config_manager import ConfigManager
+from deeplearning.config_service import ConfigManager
 from deeplearning.data_service import DataManager
 from deeplearning.model_service import ModelManager
 

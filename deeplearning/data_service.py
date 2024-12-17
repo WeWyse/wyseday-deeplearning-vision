@@ -1,17 +1,31 @@
+"""
+Data Service module with the configuration of data
+"""
+
 import torch
 from torch import nn
 from torch.utils.data import DataLoader
 from torchvision import datasets
 from torchvision.transforms import ToTensor
 
-
 class DataManager:
-
+    """
+    DataManager class to handle the loading and preprocessing of datasets.
+    """
     def __init__(self):
+        """
+        Initialize the DataManager class with batch size and data root path.
+        """
         self.batch_size = 64
         self.data_root_path = "data"
 
     def get_fashion_mnist_training_data(self):
+        """
+        Get the training data for Fashion MNIST dataset.
+
+        Returns:
+            train_dataloader (DataLoader): A DataLoader instance for the Fashion MNIST training dataset.
+        """
         training_data = datasets.FashionMNIST(
             root=self.data_root_path,
             train=True,
@@ -27,6 +41,12 @@ class DataManager:
         return train_dataloader
 
     def get_fashion_mnist_test_data(self):
+        """
+        Get the test data for Fashion MNIST dataset.
+
+        Returns:
+            test_dataloader (DataLoader): A DataLoader instance for the Fashion MNIST test dataset.
+        """
         test_data = datasets.FashionMNIST(
             root=self.data_root_path,
             train=False,
