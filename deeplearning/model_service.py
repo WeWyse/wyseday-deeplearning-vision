@@ -4,19 +4,17 @@ Model Service module with the configuration of the NN model
 
 from pprint import pprint
 
+import numpy as np
 import torch
+import torch.nn.functional as F
 from torch import nn
 from torch.utils.data import DataLoader
-from torchvision import datasets
-from torchvision.transforms import ToTensor
+from torch.utils.tensorboard import SummaryWriter
 
-# Get cpu, gpu or mps device for training.
-device = (
-    "cuda"
-    if torch.cuda.is_available()
-    else "mps" if torch.backends.mps.is_available() else "cpu"
-)
-print(f"Using {device} device")
+from deeplearning import matplot_helper
+from deeplearning.data_service import DataManager
+import random
+
 
 class ModelManager:
     """
@@ -29,20 +27,29 @@ class ModelManager:
     """
 
     def __init__(
-        self, training_data: DataLoader, test_data: DataLoader, nn_config: dict
+        self,
+        training_data: DataLoader,
+        test_data: DataLoader,
+        nn_config: dict,
+        device: str,
+        tensorboard_writer: SummaryWriter = None,
     ):
         self.training_data: DataLoader = training_data
         self.test_data: DataLoader = test_data
         self.nn_config: dict = nn_config
-        self.my_model = MyModel(self.nn_config).to(device=device)
+        self.device: str = device
+        self.tensorboard_writer: SummaryWriter = tensorboard_writer
+        self.graph_bool = True
+        self.my_model = MyModel(self.nn_config).to(device=self.device)
         print(self.my_model)
         self.loss_fn = nn.CrossEntropyLoss()
         self.optimizer = torch.optim.SGD(self.my_model.parameters(), lr=0.01)
 
-    def train(self):
+    def train(self, epoch: int):
         """
         Method to train the model
         """
+        running_loss = 0.0
         size = len(self.training_data.dataset)
         self.my_model.train()
 
@@ -51,7 +58,15 @@ class ModelManager:
             break
 
         for batch, (X, y) in enumerate(self.training_data):
-            X, y = X.to(device), y.to(device)
+            X, y = X.to(self.device), y.to(self.device)
+
+            if  self.tensorboard_writer and self.graph_bool:
+                try:
+                    self.tensorboard_writer.add_graph(self.my_model, X)
+                    self.tensorboard_writer.flush()
+                    self.graph_bool = False
+                except:
+                    pass
 
             # Compute prediction error
             pred = self.my_model(X)
@@ -63,10 +78,38 @@ class ModelManager:
             self.optimizer.zero_grad()
 
             if batch % 100 == 0:
-                loss, current = loss.item(), (batch + 1) * len(X)
-                print(f"loss: {loss:>7f}  [{current:>5d}/{size:>5d}]")
+                loss_value, current = loss.item(), (batch + 1) * len(X)
+                print(f"loss: {loss_value:>7f}  [{current:>5d}/{size:>5d}]")
 
-    def test(self):
+            running_loss += loss.item()
+            if (
+                batch % 100 == 99 and self.tensorboard_writer
+            ):  
+                # ...log the running loss
+                self.tensorboard_writer.add_scalar(
+                    "training loss",
+                    running_loss / 1000,
+                    epoch * len(self.training_data) + batch,
+                )
+                self.tensorboard_writer.flush
+
+                # ...log a Matplotlib Figure showing the model's predictions on a
+                # random mini-batch
+                # images, labels = DataManager.select_n_random(
+                #     self.training_data.dataset.data, self.training_data.dataset.targets
+                # )
+
+                # preds, probs = self.output_to_prob(images=images)
+
+                # self.tensorboard_writer.add_figure(
+                #     "predictions vs. actuals",
+                #     matplot_helper.plot_classes_preds(images, labels, preds, probs),
+                #     global_step=epoch * len(self.training_data) + batch,
+                # )
+                # self.tensorboard_writer.flush()
+                running_loss = 0.0
+
+    def test(self, epoch: int):
         """
         Method to test the model
         """
@@ -74,10 +117,20 @@ class ModelManager:
         num_batches = len(self.test_data)
         self.my_model.eval()
         test_loss, correct = 0, 0
+        random_idx_to_print = random.randint(0, len(self.test_data)-1)
         with torch.no_grad():
-            for X, y in self.test_data:
-                X, y = X.to(device), y.to(device)
+            for idx, (X, y) in enumerate(self.test_data):
+                X, y = X.to(self.device), y.to(self.device)
                 pred = self.my_model(X)
+                if idx == random_idx_to_print:
+                    pred_for_plot, prob = self.output_to_prob(pred)
+                    print("Test Batch:",idx)
+                    self.tensorboard_writer.add_figure(
+                        "predictions vs. actuals",
+                        matplot_helper.plot_classes_preds(X.cpu(), y.cpu(), pred_for_plot, prob),
+                        global_step=epoch,
+                    )
+                    self.tensorboard_writer.flush()
                 test_loss += self.loss_fn(pred, y).item()
                 correct += (pred.argmax(1) == y).type(torch.float).sum().item()
         test_loss /= num_batches
@@ -85,6 +138,13 @@ class ModelManager:
         print(
             f"Test Error: \n Accuracy: {(100*correct):>0.1f}%, Avg loss: {test_loss:>8f} \n"
         )
+        if self.tensorboard_writer:
+            self.tensorboard_writer.add_scalar(
+                    "Test Accuracy",
+                    100*correct,
+                    epoch,
+                )
+            self.tensorboard_writer.flush
 
     def train_model(self, epochs=5):
         """
@@ -93,11 +153,22 @@ class ModelManager:
         Args:
             epochs (int, optional): Number of epochs. Defaults to 5.
         """
-        for t in range(epochs):
-            print(f"Epoch {t+1}\n-------------------------------")
-            self.train()
-            self.test()
+        for epoch in range(epochs):
+            print(f"Epoch {epoch+1}\n-------------------------------")
+            self.train(epoch)
+            self.test(epoch)
         print("Done!")
+
+    def output_to_prob(self, output):
+        """
+        Generates predictions and corresponding probabilities from a trained
+        network and a list of images
+        """
+        # convert output probabilities to predicted class
+        _, preds_tensor = torch.max(output, 1)
+        preds = np.squeeze(preds_tensor.cpu().numpy())
+        return preds, [F.softmax(el, dim=0)[i].item() for i, el in zip(preds, output)]
+
 
 class MyModel(nn.Module):
     """

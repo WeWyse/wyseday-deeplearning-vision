@@ -8,10 +8,26 @@ from torch.utils.data import DataLoader
 from torchvision import datasets
 from torchvision.transforms import ToTensor
 
+# Constant for classes
+CLASSES = (
+    "T-shirt/top",
+    "Trouser",
+    "Pullover",
+    "Dress",
+    "Coat",
+    "Sandal",
+    "Shirt",
+    "Sneaker",
+    "Bag",
+    "Ankle Boot",
+)
+
+
 class DataManager:
     """
     DataManager class to handle the loading and preprocessing of datasets.
     """
+
     def __init__(self):
         """
         Initialize the DataManager class with batch size and data root path.
@@ -60,3 +76,13 @@ class DataManager:
             print(f" | Shape of y: {y.shape} {y.dtype}")
             break
         return test_dataloader
+
+    @staticmethod
+    def select_n_random(data, labels, n=100):
+        """
+        Selects n random datapoints and their corresponding labels from a dataset
+        """
+        assert len(data) == len(labels)
+
+        perm = torch.randperm(len(data))
+        return data[perm][:n], labels[perm][:n]
