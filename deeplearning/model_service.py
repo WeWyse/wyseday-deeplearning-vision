@@ -2,7 +2,9 @@
 Model Service module with the configuration of the NN model
 """
 
+import random
 from pprint import pprint
+from typing import Any, Dict, List, Tuple
 
 import numpy as np
 import torch
@@ -12,8 +14,6 @@ from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 
 from deeplearning import matplot_helper
-from deeplearning.data_service import DataManager
-import random
 
 
 class ModelManager:
@@ -24,19 +24,21 @@ class ModelManager:
         training_data (DataLoader): DataLoader for training data
         test_data (DataLoader): DataLoader for test data
         nn_config (dict): configuration for the neural network
+        device (str): device to run the model on (e.g. 'cuda' or 'cpu')
+        tensorboard_writer (SummaryWriter, optional): SummaryWriter for TensorBoard logging. Defaults to None.
     """
 
     def __init__(
         self,
         training_data: DataLoader,
         test_data: DataLoader,
-        nn_config: dict,
+        nn_config: Dict[str, Any],
         device: str,
         tensorboard_writer: SummaryWriter = None,
     ):
         self.training_data: DataLoader = training_data
         self.test_data: DataLoader = test_data
-        self.nn_config: dict = nn_config
+        self.nn_config: Dict[str, Any] = nn_config
         self.device: str = device
         self.tensorboard_writer: SummaryWriter = tensorboard_writer
         self.graph_bool = True
@@ -60,7 +62,7 @@ class ModelManager:
         for batch, (X, y) in enumerate(self.training_data):
             X, y = X.to(self.device), y.to(self.device)
 
-            if  self.tensorboard_writer and self.graph_bool:
+            if self.tensorboard_writer and self.graph_bool:
                 try:
                     self.tensorboard_writer.add_graph(self.my_model, X)
                     self.tensorboard_writer.flush()
@@ -82,16 +84,14 @@ class ModelManager:
                 print(f"loss: {loss_value:>7f}  [{current:>5d}/{size:>5d}]")
 
             running_loss += loss.item()
-            if (
-                batch % 100 == 99 and self.tensorboard_writer
-            ):  
+            if batch % 100 == 99 and self.tensorboard_writer:
                 # ...log the running loss
                 self.tensorboard_writer.add_scalar(
                     "training loss",
                     running_loss / 1000,
                     epoch * len(self.training_data) + batch,
                 )
-                self.tensorboard_writer.flush
+                self.tensorboard_writer.flush()
 
                 # ...log a Matplotlib Figure showing the model's predictions on a
                 # random mini-batch
@@ -117,17 +117,19 @@ class ModelManager:
         num_batches = len(self.test_data)
         self.my_model.eval()
         test_loss, correct = 0, 0
-        random_idx_to_print = random.randint(0, len(self.test_data)-1)
+        random_idx_to_print = random.randint(0, len(self.test_data) - 1)
         with torch.no_grad():
             for idx, (X, y) in enumerate(self.test_data):
                 X, y = X.to(self.device), y.to(self.device)
                 pred = self.my_model(X)
                 if idx == random_idx_to_print:
                     pred_for_plot, prob = self.output_to_prob(pred)
-                    print("Test Batch:",idx)
+                    print("Test Batch:", idx)
                     self.tensorboard_writer.add_figure(
                         "predictions vs. actuals",
-                        matplot_helper.plot_classes_preds(X.cpu(), y.cpu(), pred_for_plot, prob),
+                        matplot_helper.plot_classes_preds(
+                            X.cpu(), y.cpu(), pred_for_plot, prob
+                        ),
                         global_step=epoch,
                     )
                     self.tensorboard_writer.flush()
@@ -140,13 +142,13 @@ class ModelManager:
         )
         if self.tensorboard_writer:
             self.tensorboard_writer.add_scalar(
-                    "Test Accuracy",
-                    100*correct,
-                    epoch,
-                )
-            self.tensorboard_writer.flush
+                "Test Accuracy",
+                100 * correct,
+                epoch,
+            )
+            self.tensorboard_writer.flush()
 
-    def train_model(self, epochs=5):
+    def train_model(self, epochs: int = 5):
         """
         Method to train the model for a given number of epochs
 
@@ -159,10 +161,14 @@ class ModelManager:
             self.test(epoch)
         print("Done!")
 
-    def output_to_prob(self, output):
+    def output_to_prob(self, output: torch.Tensor) -> Tuple[np.ndarray, List[float]]:
         """
         Generates predictions and corresponding probabilities from a trained
         network and a list of images
+        Args:
+            output (torch.Tensor): output tensor from the model
+        Returns:
+            Tuple[np.ndarray, List[float]]: predictions and probabilities
         """
         # convert output probabilities to predicted class
         _, preds_tensor = torch.max(output, 1)
@@ -173,13 +179,12 @@ class ModelManager:
 class MyModel(nn.Module):
     """
     MyModel class to create a custom neural network architecture
-
     Args:
         nn_config (dict): configuration for the neural network
     """
 
-    def __init__(self, nn_config: dict):
-        self.nn_config: dict = nn_config
+    def __init__(self, nn_config: Dict[str, Any]):
+        self.nn_config: Dict[str, Any] = nn_config
         pprint(self.nn_config)
         super().__init__()
         self.layers = nn.ModuleList()
@@ -189,13 +194,12 @@ class MyModel(nn.Module):
             self.layers.append(layer)
         self.print_bool = True
 
-    def get_layer(self, layer_config: dict):
+    def get_layer(self, layer_config: Dict[str, Any]) -> nn.Module:
         """
         Method to create a layer based on the layer configuration
 
         Args:
             layer_config (dict): configuration for the layer
-
         Returns:
             nn.Module: layer
         """
@@ -228,7 +232,7 @@ class MyModel(nn.Module):
         if layer_type == "log_softmax":
             return nn.LogSoftmax(dim=layer_config.get("dim", 1))
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
         Method to forward the input through the layers of the network
 

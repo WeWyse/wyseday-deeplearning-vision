@@ -1,20 +1,33 @@
+import matplotlib.pyplot as plt
 import torch
 import torchvision
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
-import matplotlib.pyplot as plt
 
 from deeplearning import matplot_helper
 from deeplearning.data_service import CLASSES, DataManager
 
 
 class TensorboardManager:
+    """
+    A class to manage Tensorboard operations for visualizing and understanding the model's performance.
+    """
 
     def __init__(self, data: DataLoader):
+        """
+        Initializes a TensorboardManager instance with a specified log directory and DataLoader.
+
+        Args:
+            data (DataLoader): A PyTorch DataLoader instance containing the dataset.
+        """
         self.writer = SummaryWriter("runs/fashion_mnist_experiment_1")
         self.data = data
 
     def sample_data(self):
+        """
+        Samples data from the DataLoader and visualizes four images in a grid using matplotlib.
+        The visualization is then added to Tensorboard.
+        """
         dataiter = iter(self.data)
         images, labels = next(dataiter)
         img_grid = torchvision.utils.make_grid(images)
@@ -25,8 +38,9 @@ class TensorboardManager:
         self.writer.flush()
 
     def project_data(self):
-
-        # select random images and their target indices
+        """
+        Selects random images and their target indices from the dataset, then logs their embeddings to Tensorboard.
+        """
         images, labels = DataManager.select_n_random(
             self.data.dataset.data, self.data.dataset.targets
         )

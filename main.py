@@ -4,6 +4,7 @@ Main file for executing the Deep Learning code
 
 import torch
 import torchvision
+from rich.traceback import install
 from torch.utils.tensorboard import SummaryWriter
 
 from deeplearning.config_service import ConfigManager
@@ -11,8 +12,8 @@ from deeplearning.data_service import DataManager
 from deeplearning.model_service import ModelManager
 from deeplearning.tensorboard_service import TensorboardManager
 
-from rich.traceback import install
 install()
+
 
 def main():
 
