@@ -6,6 +6,7 @@ import numpy as np
 from collections import deque
 import random
 
+
 # Define the policy network
 class PolicyNetwork(nn.Module):
     def __init__(self, input_dim, hidden_dim1, hidden_dim2, output_dim):
@@ -20,12 +21,14 @@ class PolicyNetwork(nn.Module):
         x = torch.softmax(self.fc3(x), dim=-1)
         return x
 
+
 def choose_action(policy_net, state):
     state = state.clone().detach().float()
     action_probs = policy_net(state)
-    #action = np.random.choice(len(action_probs.detach().numpy()), p=action_probs.detach().numpy())
+    # action = np.random.choice(len(action_probs.detach().numpy()), p=action_probs.detach().numpy())
     action = np.argmax(action_probs.detach().numpy())
     return action, action_probs[action]
+
 
 def discount_rewards(rewards, gamma=0.99):
     discounted = np.zeros_like(rewards, dtype=np.float32)
@@ -35,9 +38,10 @@ def discount_rewards(rewards, gamma=0.99):
         discounted[t] = running_add
     return discounted
 
+
 def train_agent():
     # Initialize environment and parameters
-    env = gym.make('Blackjack-v1', render_mode=None)  # Gym's Blackjack environment
+    env = gym.make("Blackjack-v1", render_mode=None)  # Gym's Blackjack environment
     state_dim = 3  # Environment's state size
     action_dim = env.action_space.n  # Environment's action space size
     hidden_dim1 = 128
@@ -102,18 +106,20 @@ def train_agent():
         # Logging progress
         if (episode + 1) % 100 == 0:
             accuracy = np.mean(win_rates[-100:]) * 100
-            print(f"Episode {episode + 1}/{num_episodes}: Total Reward: {total_reward}, Accuracy: {accuracy:.2f}%")
+            print(
+                f"Episode {episode + 1}/{num_episodes}: Total Reward: {total_reward}, Accuracy: {accuracy:.2f}%"
+            )
 
     env.close()
     return policy_net
 
+
 def render_agent(policy_net):
-    env = gym.make('Blackjack-v1')
+    env = gym.make("Blackjack-v1")
     total_rewards = []
     draw_count = 0
     loss_count = 0
     win_count = 0
-    
 
     for idx in range(10):  # Play at least 10 hands
         state = env.reset()[0]
@@ -128,7 +134,7 @@ def render_agent(policy_net):
             print("action", action, f" = {'STICK' if action == 0 else 'HIT ME'}")
             state, reward, done, truncated, info = env.step(action)
             print("truncated", truncated, "| info", info)
-            print("state", state, "| reward",reward, "| done",done)
+            print("state", state, "| reward", reward, "| done", done)
             total_reward += reward
             input()
 
@@ -138,12 +144,13 @@ def render_agent(policy_net):
             win_count += 1
         if reward == -1:
             loss_count += 1
-        
+
         total_rewards.append(total_reward)
 
     print(f"Average Reward over 10 Hands: {np.mean(total_rewards):.2f}")
     print(f"WINS: {win_count} | DRAWS: {draw_count} | LOSSES: {loss_count}")
     env.close()
+
 
 if __name__ == "__main__":
     trained_policy = train_agent()
