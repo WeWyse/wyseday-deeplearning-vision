@@ -29,5 +29,15 @@ format:
 # LAUNCH THE SCRIPT #
 #####################
 
+run-model:
+	rm -rf runs/ & sleep 1 & python3 main.py
+
+run-tensorboard:
+	tensorboard --logdir=runs
+
+# Run both model and tensorboard in parallel,
+# CTRL+C will stop both at the same time
+# By default the Tensorboard will be on:
+#       http://localhost:6006/
 run:
-	python3 main.py
+	bash -c 'trap "" INT; (make -j run-model & make -j run-tensorboard) & wait'
