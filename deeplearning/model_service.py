@@ -45,7 +45,8 @@ class ModelManager:
         self.my_model = MyModel(self.nn_config).to(device=self.device)
         print(self.my_model)
         self.loss_fn = nn.CrossEntropyLoss()
-        self.optimizer = torch.optim.SGD(self.my_model.parameters(), lr=0.01)
+        #self.optimizer = torch.optim.SGD(self.my_model.parameters(), lr=0.01)
+        self.optimizer = torch.optim.Adam(self.my_model.parameters(), lr=0.001)
 
     def train(self, epoch: int):
         """
