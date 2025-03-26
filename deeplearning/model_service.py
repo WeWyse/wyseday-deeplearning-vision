@@ -56,7 +56,7 @@ class ModelManager:
         self.my_model.train()
 
         for batch, (X, y) in enumerate(self.training_data):
-            print("TARGET SHAPE:", y.shape)
+            print("BATCH SIZE:", y.shape)
             break
 
         for batch, (X, y) in enumerate(self.training_data):
@@ -188,10 +188,15 @@ class MyModel(nn.Module):
         pprint(self.nn_config)
         super().__init__()
         self.layers = nn.ModuleList()
+        self.layer_names = []
+        count = 0
         for layer_config in self.nn_config:
             print(layer_config)
+            layer_name = str(count)+" : "+layer_config.get("name", layer_config["type"])  # Use name if provided
+            self.layer_names.append(layer_name) 
             layer = self.get_layer(layer_config)
             self.layers.append(layer)
+            count += 1
         self.print_bool = True
 
     def get_layer(self, layer_config: Dict[str, Any]) -> nn.Module:
@@ -244,7 +249,7 @@ class MyModel(nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
-        Method to forward the input through the layers of the network
+        Method to forward the input through the layers of the network.
 
         Args:
             x (torch.Tensor): input
@@ -252,9 +257,10 @@ class MyModel(nn.Module):
         Returns:
             torch.Tensor: output
         """
-        for idx, layer in enumerate(self.layers):
+        for name, layer in zip(self.layer_names, self.layers):  # Iterate using names
             x = layer(x)
             if self.print_bool:
-                print(f"Layer {idx + 1} output shape: {x.shape}")
+                print(f"Layer {name} output shape: {x.shape}")
+
         self.print_bool = False
         return x
