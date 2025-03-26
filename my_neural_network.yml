@@ -34,20 +34,30 @@ my_model_cnn:
   - type: conv2d
     in_size: 1
     out_size: 32
+    kernel_size: 3
+    stride: 2
+    padding: 1
 
   - type: relu
 
   - type: maxpool2d
     kernel_size: 2
+    padding: 0
+    dilation: 1
 
   - type: conv2d
     in_size: 32
     out_size: 64
+    kernel_size: 3
+    stride: 2
+    padding: 1
 
   - type: relu
 
   - type: maxpool2d
     kernel_size: 2
+    padding: 0
+    dilation: 1
 
   - type: dropout
     proba: 0.25

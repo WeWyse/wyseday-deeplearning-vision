@@ -216,15 +216,25 @@ class MyModel(nn.Module):
 
         if layer_type == "conv2d":
             return nn.Conv2d(
-                layer_config["in_size"],
-                layer_config["out_size"],
+                in_channels=layer_config["in_size"],
+                out_channels=layer_config["out_size"],
                 kernel_size=layer_config.get("kernel_size", 3),
-                stride=layer_config.get("stride", 2),
-                padding=layer_config.get("padding", 1),
+                stride=layer_config.get("stride", 2),            
+                padding=layer_config.get("padding", 1),          
+                dilation=layer_config.get("dilation", 1),       
+                groups=layer_config.get("groups", 1),            
+                bias=layer_config.get("bias", True),          
+                padding_mode=layer_config.get("padding_mode", "zeros") 
             )
 
         if layer_type == "maxpool2d":
-            return nn.MaxPool2d(kernel_size=layer_config.get("kernel_size", 3))
+            return nn.MaxPool2d(
+                kernel_size=layer_config.get("kernel_size", 3),
+                stride=layer_config.get("stride", None),  
+                padding=layer_config.get("padding", 0),
+                dilation=layer_config.get("dilation", 1),
+                ceil_mode=layer_config.get("ceil_mode", False)
+            )
 
         if layer_type == "dropout":
             return nn.Dropout(p=layer_config.get("proba", 0.5))
