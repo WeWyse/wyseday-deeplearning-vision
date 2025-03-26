@@ -1,3 +1,12 @@
+# Neural Networks !!
+my_model:
+
+  - type: flatten
+
+  - type: linear
+    in_size: 784
+    out_size: 10
+
 # Classic example model
 my_model_linear:
 
