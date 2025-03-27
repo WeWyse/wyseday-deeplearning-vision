@@ -20,7 +20,7 @@ def main():
     ## LOAD CONFIG
     config_manager = ConfigManager()
     nn_configs = config_manager.load()
-    nn_config = nn_configs["my_model_cnn"]
+    nn_config = nn_configs["my_model"]
     device = config_manager.obtain_device()
 
     ### Getting the datasets
